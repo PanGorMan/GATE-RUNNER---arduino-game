@@ -3,10 +3,10 @@
 #include <Adafruit_SSD1306.h>
 #include <avr/wdt.h>
 
-const int pin2 = 2; // góra 
-const int pin3 = 3; // wybór
+const int pin2 = 2;
+const int pin3 = 3;
 const int pin4 = 4;
-const int pin5 = 5; // dół
+const int pin5 = 5;
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -51,6 +51,7 @@ struct Heart {
   bool active;
 };
 Heart heart = { 60, 30, true };
+
 // bramki 
 
 struct Gate {
@@ -73,7 +74,7 @@ void setup() {
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-  randomSeed(analogRead(A0)); // raz
+  randomSeed(analogRead(A0));
 }
 
 void loop() {
@@ -128,8 +129,6 @@ if (stan == 1){
 while (stan == 4){
 // poruszanie się gracza , klatka
 
-  //stara_liczba_x = liczba_x;  stara_liczba_y = liczba_y;
-
   if (digitalRead(pin2) == LOW) {  stara_liczba_x = liczba_x;  stara_liczba_y = liczba_y;
 liczba_y--; delay(3);}
   if (digitalRead(pin3) == LOW) {  stara_liczba_x = liczba_x;  stara_liczba_y = liczba_y;
@@ -171,7 +170,6 @@ liczba_y++; delay(3);}
 
   // --- RUCH KWADRATU ---
 if (box.active) {
-
   static int counter = 0;
   counter++;
 
@@ -191,7 +189,7 @@ if (box.active &&
     liczba_y >= box.y && liczba_y < box.y + 8) {
 
   selected = false;
-  stan = 1;
+  stan = 4;
 
   while (selected == false){
 
@@ -209,10 +207,10 @@ if (box.active &&
       selected = true;
       delay(150);
     }
-
+    if (stan != 4){
     if (stan < 1) stan = 1;
     if (stan > 2) stan = 2;
-
+    }
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(0,0);
@@ -228,6 +226,11 @@ if (box.active &&
     display.print("Main menu");
 
     display.display();
+
+    if (stan == 4){
+      delay(400);
+      stan = 1 ;
+    }
   }
 
 if (stan == 1){
@@ -260,28 +263,25 @@ if (stan == 1){
     liczba_x >= heart.x && liczba_x < heart.x + 8 &&
     liczba_y >= heart.y && liczba_y < heart.y + 8) {
 
-  score = (score + 5);     // nagroda
+  score = (score + 5);
   heart.x = random(20, 100);
   heart.y = random(20, 60);
 }
 
  // --- kolizje bramki
 
-// gate1 (x = 30)
 if (liczba_x == 30 &&
    (liczba_y < gate1.y_up || liczba_y > gate1.y_down)) {
   liczba_x = stara_liczba_x;
   liczba_y = stara_liczba_y;
 }
 
-// gate2 (x = 60)
 if (liczba_x == 60 &&
    (liczba_y < gate2.y_up || liczba_y > gate2.y_down)) {
   liczba_x = stara_liczba_x;
   liczba_y = stara_liczba_y;
 }
 
-// gate3 (x = 90)
 if (liczba_x == 90 &&
    (liczba_y < gate3.y_up || liczba_y > gate3.y_down)) {
   liczba_x = stara_liczba_x;
@@ -336,7 +336,7 @@ if (liczba_x == 90 &&
 
   if (stan == 2){
     display.setTextSize(1);
-    display.print("Go through left to right and back.\nAvoid square if you don't want to lose.\nGood luck : )\n");
+    display.print("Go through left to \nright and back.\nAvoid square if you \ndon't want to lose.\nGood luck : )\n");
   }
 
   if (stan == 3){
@@ -346,7 +346,7 @@ if (liczba_x == 90 &&
     display.setCursor(0, 0);
     display.print("Game will turn shut down \nPress any button to  turn it on ");
 
-    display.display();   // ← TO MUSI BYĆ TU
+    display.display();
 
     delay(3000);
 

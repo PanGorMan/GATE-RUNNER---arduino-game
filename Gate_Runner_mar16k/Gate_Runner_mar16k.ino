@@ -1,7 +1,7 @@
-#include <avr/wdt.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <avr/wdt.h>
 
 const int pin2 = 2;
 const int pin3 = 3;
@@ -14,7 +14,11 @@ const int pin5 = 5;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// graty systemowe 
+int stan = 1 ;
+bool selected = false ;
+
+// graty systemowe -gra
+
 int faza = 0 ;
 int score = 0 ;
 int liczba_x = 10;
@@ -47,17 +51,18 @@ struct Heart {
   bool active;
 };
 Heart heart = { 60, 30, true };
+
 // bramki 
 
 struct Gate {
   int  y_up , y_down;
 };
 
-//---------------------------------------------------------------------------------------------------------------------
 // bramik ustawianie pozycji
   Gate gate1 ;
   Gate gate2 ;
   Gate gate3 ;
+//---------------------------------------------------------------------------------------------------------------------
 
 void setup() {
 
@@ -69,13 +74,60 @@ void setup() {
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-  randomSeed(analogRead(A0)); // raz
+  randomSeed(analogRead(A0));
 }
 
 void loop() {
-// poruszanie się gracza , klatka
 
-  //stara_liczba_x = liczba_x;  stara_liczba_y = liczba_y;
+if (stan <= 3){
+  if (digitalRead(pin2) == LOW) {
+    stan--;
+    delay(150);
+  }
+
+  if (digitalRead(pin5) == LOW) {
+    stan++;
+    delay(150);
+  }
+  if (digitalRead(pin3) == LOW) {
+    if(selected == true){
+    selected = false;
+    }else if (selected == false){
+    selected = true;
+    }
+    delay(150);
+  }
+  
+  // ograniczenie menu 
+  if (stan < 1) stan = 1;
+  if (stan > 3) stan = 3;
+}
+
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  if (selected == false) {
+
+    display.print("GATERUNNER\n");
+
+    if (stan == 1) display.print(">"); else display.print(" ");
+    display.print("START\n");
+
+    if (stan == 2) display.print(">"); else display.print(" ");
+    display.print("RULES\n");
+
+    if (stan == 3) display.print(">"); else display.print(" ");
+    display.print("QUIT\n");
+
+  }
+else {
+//---------------------------------------------------------------------------------------------------------------------
+if (stan == 1){
+  stan = 4 ;
+while (stan == 4){
+// poruszanie się gracza , klatka
 
   if (digitalRead(pin2) == LOW) {  stara_liczba_x = liczba_x;  stara_liczba_y = liczba_y;
 liczba_y--; delay(3);}
@@ -118,7 +170,6 @@ liczba_y++; delay(3);}
 
   // --- RUCH KWADRATU ---
 if (box.active) {
-
   static int counter = 0;
   counter++;
 
@@ -132,22 +183,78 @@ if (box.active) {
   else if (box.y < liczba_y) box.y++;
 }
 }
-  // --- kolizja kwadrat 
- if (box.active &&
-      liczba_x >= box.x && liczba_x < box.x + 8 &&
-      liczba_y >= box.y && liczba_y < box.y + 8) {
+// --- kolizja kwadrat 
+if (box.active &&
+    liczba_x >= box.x && liczba_x < box.x + 8 &&
+    liczba_y >= box.y && liczba_y < box.y + 8) {
 
-      display.clearDisplay();
-      display.setTextSize(2);
-      display.setCursor(0, 0);
-      display.print(" Game over\nScore:");
-      display.print(score);
-      display.print("\nPlay again\n");
-      display.print("Main menu\n");
+  selected = false;
+  stan = 4;
 
-  display.display();
+  while (selected == false){
 
-  while(true) {}
+    if (digitalRead(pin2) == LOW) {
+      stan--;
+      delay(150);
+    }
+
+    if (digitalRead(pin5) == LOW) {
+      stan++;
+      delay(150);
+    }
+
+    if (digitalRead(pin3) == LOW) {
+      selected = true;
+      delay(150);
+    }
+    if (stan != 4){
+    if (stan < 1) stan = 1;
+    if (stan > 2) stan = 2;
+    }
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0,0);
+
+    display.print("Game over\nScore:");
+    display.print(score);
+    display.print("\n");
+
+    if (stan == 1) display.print(">"); else display.print(" ");
+    display.print("Restart\n");
+
+    if (stan == 2) display.print(">"); else display.print(" ");
+    display.print("Main menu");
+
+    display.display();
+
+    if (stan == 4){
+      delay(400);
+      stan = 1 ;
+    }
+  }
+
+if (stan == 1){
+
+  // reset gry
+  score = 0;
+  faza = 0;
+
+  liczba_x = 10;
+  liczba_y = 50;
+
+  box.x = 64;
+  box.y = 40;
+
+  heart.x = 60;
+  heart.y = 30;
+
+  stan = 4;
+}
+
+  if (stan == 2){
+    wdt_enable(WDTO_15MS);
+    while (1) {}
+  }
 }
   
   // --- kolizja serce
@@ -156,28 +263,25 @@ if (box.active) {
     liczba_x >= heart.x && liczba_x < heart.x + 8 &&
     liczba_y >= heart.y && liczba_y < heart.y + 8) {
 
-  score = (score + 5);     // nagroda
+  score = (score + 5);
   heart.x = random(20, 100);
   heart.y = random(20, 60);
 }
 
  // --- kolizje bramki
 
-// gate1 (x = 30)
 if (liczba_x == 30 &&
    (liczba_y < gate1.y_up || liczba_y > gate1.y_down)) {
   liczba_x = stara_liczba_x;
   liczba_y = stara_liczba_y;
 }
 
-// gate2 (x = 60)
 if (liczba_x == 60 &&
    (liczba_y < gate2.y_up || liczba_y > gate2.y_down)) {
   liczba_x = stara_liczba_x;
   liczba_y = stara_liczba_y;
 }
 
-// gate3 (x = 90)
 if (liczba_x == 90 &&
    (liczba_y < gate3.y_up || liczba_y > gate3.y_down)) {
   liczba_x = stara_liczba_x;
@@ -224,4 +328,43 @@ if (liczba_x == 90 &&
 }
 
   display.display();
+
+}
+}
+//---------------------------------------------------------------------------------------------------------------------
+
+
+  if (stan == 2){
+    display.setTextSize(1);
+    display.print("Go through left to \nright and back.\nAvoid square if you \ndon't want to lose.\nGood luck : )\n");
+  }
+
+  if (stan == 3){
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Game will turn shut down \nPress any button to  turn it on ");
+
+    display.display();
+
+    delay(3000);
+
+    display.clearDisplay();
+    display.display();
+    while (digitalRead(pin2) == HIGH &&
+           digitalRead(pin3) == HIGH &&
+           digitalRead(pin4) == HIGH &&
+           digitalRead(pin5) == HIGH) {
+    }
+    wdt_enable(WDTO_15MS);
+    while (1) {}
+  }
+  display.display();
+}
+
+if (stan <= 3){
+display.display();
+}
+
 }
